@@ -5,7 +5,7 @@ from api.kraken_api import get_account_balance
 
 
 def main():
-    get_OHLC(pairs = ["ADAUSD"], from_date = "15/06/2025")
+    get_OHLC(pair = "ADAUSD", from_date = "06-15-2025")
     # get_account_balance()
 
 

@@ -6,6 +6,8 @@ from security.nonce import get_signature
 from security.SEC_KEY import API_KEY, PRIVATE_KEY
 import json
 import pandas as pd
+from data.data import save_df_to_pkl, save_df_to_csv
+from time import strftime, localtime
 
 BASE_URL = 'https://api.kraken.com'
 
@@ -33,30 +35,33 @@ def make_request(path, params=None, data=None, headers=None, verb='get', code=20
         return False, {'Exception': ex }
 
 
-def get_OHLC(pairs=None, timeframe=60, from_date=""):
+def get_OHLC(pair=None, timeframe=60, from_date=""):
     '''
     timeframe is in minutes
     timeframe possible values: [1, 5, 15, 30, 60, 240, 1440 (1 day), 10080 (1 week), 21600 (15 days)]
     from_date is in format mm/dd/yyyy
     '''
     path = "/0/public/OHLC"
-    since = time.mktime(datetime.datetime.strptime(from_date, "%d/%m/%Y").timetuple())
+    since = time.mktime(datetime.datetime.strptime(from_date, "%m-%d-%Y").timetuple())
 
-    for pair in pairs:
-        params = {
-            "pair": pair,
-            "interval": str(timeframe),
-            "since": since
-        }
 
-        ok, response_data = make_request(
-            path = path, 
-            params = params
-        )
-        
-        if ok:
-            df = pd.DataFrame(response_data["result"][pair], columns=['timestamp', 'open', 'high', 'low', 'close', 'vwap', 'volume', 'count'])
-            print(df)
+    params = {
+        "pair": pair,
+        "interval": str(timeframe),
+        "since": since
+    }
+
+    ok, response_data = make_request(
+        path = path, 
+        params = params
+    )
+    
+    if ok:
+        df = pd.DataFrame(response_data["result"][pair], columns=['timestamp', 'open', 'high', 'low', 'close', 'vwap', 'volume', 'count'])
+        df['timestamp'] = df['timestamp'].apply(lambda x: strftime('%m-%d-%Y %H:%M', localtime(x)))
+        df_name = f"{ pair }-{ str(int(timeframe / 60)) }H-{ from_date.replace('/', '.') }"
+        save_df_to_csv(df, df_name)
+        return df
 
 def get_account_balance():
     path = "/0/private/Balance"
