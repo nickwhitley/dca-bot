@@ -6,10 +6,22 @@ from security.nonce import get_signature
 from security.SEC_KEY import API_KEY, PRIVATE_KEY
 import json
 import pandas as pd
-from data.data import save_df_to_pkl, save_df_to_csv
+from data import data
 from time import strftime, localtime
 
 BASE_URL = 'https://api.kraken.com'
+
+available_timeframes = {
+    "1M": 1,
+    "5M": 5,
+    "15M": 15,
+    "30M": 30,
+    "1H": 60,
+    "4H": 240,
+    "1D": 1440,
+    "1W": 10080,
+    "15D": 21600
+}
 
 
 def make_request(path, params=None, data=None, headers=None, verb='get', code=200):
@@ -35,19 +47,18 @@ def make_request(path, params=None, data=None, headers=None, verb='get', code=20
         return False, {'Exception': ex }
 
 
-def get_OHLC(pair=None, timeframe=60, from_date=""):
-    '''
-    timeframe is in minutes
-    timeframe possible values: [1, 5, 15, 30, 60, 240, 1440 (1 day), 10080 (1 week), 21600 (15 days)]
-    from_date is in format mm/dd/yyyy
-    '''
+def get_OHLC(pair=None, timeframe="1H", from_date=""):
+
+    if timeframe not in available_timeframes.keys():
+        print(f"timeframe: { timeframe } is invalid. Available timeframe: { available_timeframes.keys() }")
+        return
+
     path = "/0/public/OHLC"
     since = time.mktime(datetime.datetime.strptime(from_date, "%m-%d-%Y").timetuple())
 
-
     params = {
         "pair": pair,
-        "interval": str(timeframe),
+        "interval": available_timeframes[timeframe],
         "since": since
     }
 
@@ -56,12 +67,15 @@ def get_OHLC(pair=None, timeframe=60, from_date=""):
         params = params
     )
     
-    if ok:
+    if ok and response_data["error"] == []:
         df = pd.DataFrame(response_data["result"][pair], columns=['timestamp', 'open', 'high', 'low', 'close', 'vwap', 'volume', 'count'])
         df['timestamp'] = df['timestamp'].apply(lambda x: strftime('%m-%d-%Y %H:%M', localtime(x)))
-        df_name = f"{ pair }-{ str(int(timeframe / 60)) }H-{ from_date.replace('/', '.') }"
-        save_df_to_csv(df, df_name)
+        df_name = f"{ pair }-{ timeframe }-{ from_date.replace('/', '.') }"
+        data.save_df_to_pkl(df, df_name)
         return df
+    else:
+        print(f"Kraken api error: response_data["error"]")
+
 
 def get_account_balance():
     path = "/0/private/Balance"
