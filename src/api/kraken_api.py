@@ -8,23 +8,11 @@ import json
 import pandas as pd
 from data import data
 from time import strftime, localtime
+from constants import Timeframe
 
 BASE_URL = 'https://api.kraken.com'
 
-available_timeframes = {
-    "1M": 1,
-    "5M": 5,
-    "15M": 15,
-    "30M": 30,
-    "1H": 60,
-    "4H": 240,
-    "1D": 1440,
-    "1W": 10080,
-    "15D": 21600
-}
-
-
-def make_request(path, params=None, data=None, headers=None, verb='get', code=200):
+def make_request(path: str, params: dict={}, data: bytes|None=None, headers: dict|None=None, verb: str='get', code: int=200):
     full_url = f"{ BASE_URL }/{ path }"
     # print(f"full_url: { full_url }")
     # print(f"params: { params }")
@@ -39,26 +27,20 @@ def make_request(path, params=None, data=None, headers=None, verb='get', code=20
             response = requests.post(full_url, params=params, data=data, headers=headers)
         if response == None:
             raise Exception('response was none.')
-        if response.status_code == code:
-            return True, response.json()
-        else:
-            return False, response.json()
+        return response.status_code == code, response.json()
     except Exception as ex:
         return False, {'Exception': ex }
 
 
-def get_OHLC(pair=None, timeframe="1H", from_date=""):
-
-    if timeframe not in available_timeframes.keys():
-        print(f"timeframe: { timeframe } is invalid. Available timeframe: { available_timeframes.keys() }")
-        return
-
+def get_OHLC(pair: str="BTCUSD", timeframe: Timeframe=Timeframe.H1, from_date: str="") -> pd.DataFrame|None:
+    # TODO: Make async
+    # TODO: add rate-limiting
     path = "/0/public/OHLC"
     since = time.mktime(datetime.datetime.strptime(from_date, "%m-%d-%Y").timetuple())
 
     params = {
         "pair": pair,
-        "interval": available_timeframes[timeframe],
+        "interval": timeframe.value,
         "since": since
     }
 
@@ -68,16 +50,16 @@ def get_OHLC(pair=None, timeframe="1H", from_date=""):
     )
     
     if ok and response_data["error"] == []:
-        df = pd.DataFrame(response_data["result"][pair], columns=['timestamp', 'open', 'high', 'low', 'close', 'vwap', 'volume', 'count'])
+        df = pd.DataFrame(response_data["result"][pair], columns=['timestamp', 'open', 'high', 'low', 'close', 'vwap', 'volume', 'count']) 
         df['timestamp'] = df['timestamp'].apply(lambda x: strftime('%m-%d-%Y %H:%M', localtime(x)))
-        df_name = f"{ pair }-{ timeframe }-{ from_date.replace('/', '.') }"
+        df_name = f"{ pair }-{ timeframe.name }-{ from_date.replace('/', '.') }"
         data.save_df_to_pkl(df, df_name)
         return df
     else:
-        print(f"Kraken api error: response_data["error"]")
+        raise Exception(f"Kraken api error: { response_data["error"] }")
 
 
-def get_account_balance():
+def get_account_balance() -> dict:
     path = "/0/private/Balance"
 
     data = {}
@@ -96,5 +78,8 @@ def get_account_balance():
         verb = 'post'
     )
 
-    print(response_data)
+    if ok and response_data['error'] == []:
+        return response_data['result']
+    else:
+        raise Exception("Kraken api error: failed to get balance")
 
