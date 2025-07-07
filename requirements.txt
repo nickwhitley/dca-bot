@@ -4,3 +4,4 @@ jupyter
 plotly
 wheel
 loguru
+pyarrow

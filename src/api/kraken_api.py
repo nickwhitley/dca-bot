@@ -9,77 +9,117 @@ import pandas as pd
 from data import data
 from time import strftime, localtime
 from constants import Timeframe
+from typing import Any, Literal
 
 BASE_URL = 'https://api.kraken.com'
 
-def make_request(path: str, params: dict={}, data: bytes|None=None, headers: dict|None=None, verb: str='get', code: int=200):
-    full_url = f"{ BASE_URL }/{ path }"
-    # print(f"full_url: { full_url }")
-    # print(f"params: { params }")
-    # print(f"data: { data }")
-    # print(f"headers: { headers }")
+class ApiError(Exception):
+    """
+    Handles any Api Related Errors
+    """
 
-    try:
-        response = None
-        if verb == 'get':
-            response = requests.get(full_url, params=params, data=data, headers=headers)
-        if verb == 'post':
-            response = requests.post(full_url, params=params, data=data, headers=headers)
-        if response == None:
-            raise Exception('response was none.')
-        return response.status_code == code, response.json()
-    except Exception as ex:
-        return False, {'Exception': ex }
+def make_request(
+        path: str, 
+        params: dict[str, Any] | None = None, 
+        data: bytes | None = None, 
+        headers: dict[str, str] | None = None, 
+        verb: Literal['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] = 'GET',
+        use_nonce: bool = False,
+        retry_on: list[int] | None = None,
+        retry_delay: float = 1.0,
+        retry_max: int = 3
+) -> Any:
+    
+    if not retry_on:
+        retry_on = [429, 502, 503, 504]
+
+    url = f"{BASE_URL}/{path}"
+    retries = 0
+
+    while retries < retry_max:
+        if use_nonce:
+            nonce = get_nonce()
+
+            payload = {}
+            if data:
+                payload = json.loads(data.decode())
+            payload['nonce'] = nonce
+            data = json.dumps(payload).encode()
+            
+            headers = headers or {}
+            headers.setdefault('Content-Type', 'Application/json')
+            headers['API-Key'] = API_KEY
+            headers['API-Sign'] = get_signature(
+                PRIVATE_KEY,
+                data.decode(),
+                nonce,
+                path
+            )
+
+        try:
+            response = requests.request(
+                method=verb,
+                url=url,
+                params=params,
+                data=data,
+                headers=headers,
+            )
+        except (requests.ConnectionError, requests.ConnectTimeout):
+            retries += 1
+            time.sleep(retry_delay)
+            continue
+        
+        if response.status_code in retry_on:
+            retries += 1
+            time.sleep(retry_delay)
+        elif response.status_code not in range(200, 299):
+            raise ApiError(
+                f"Call to {url} yeilded a {response.status_code}"
+                f'response with "{response.content}'
+            )
+        elif (error := response.json().get('error')) != []:
+            raise ApiError(f'Api returned error: { error }')
+        else:
+            return response.json()
+    raise ApiError(f'Max Retries exeeded to {url}')
 
 
-def get_OHLC(pair: str="BTCUSD", timeframe: Timeframe=Timeframe.H1, from_date: str="") -> pd.DataFrame|None:
-    # TODO: Make async
-    # TODO: add rate-limiting
+def get_OHLC(
+        pair: str="BTCUSD", 
+        timeframe: Timeframe=Timeframe.H1, 
+        from_date: str=""
+) -> pd.DataFrame|None:
+    
     path = "/0/public/OHLC"
     since = time.mktime(datetime.datetime.strptime(from_date, "%m-%d-%Y").timetuple())
-
     params = {
         "pair": pair,
         "interval": timeframe.value,
         "since": since
     }
 
-    ok, response_data = make_request(
+    response = make_request(
         path = path, 
         params = params
     )
     
-    if ok and response_data["error"] == []:
-        df = pd.DataFrame(response_data["result"][pair], columns=['timestamp', 'open', 'high', 'low', 'close', 'vwap', 'volume', 'count']) 
-        df['timestamp'] = df['timestamp'].apply(lambda x: strftime('%m-%d-%Y %H:%M', localtime(x)))
-        df_name = f"{ pair }-{ timeframe.name }-{ from_date.replace('/', '.') }"
-        data.save_df_to_pkl(df, df_name)
-        return df
-    else:
-        raise Exception(f"Kraken api error: { response_data["error"] }")
+    df = pd.DataFrame(response["result"][pair], columns=['timestamp', 'open', 'high', 'low', 'close', 'vwap', 'volume', 'count']) 
+    df['timestamp'] = df['timestamp'].apply(lambda x: strftime('%m-%d-%Y %H:%M', localtime(x)))
+
+    df_name = f"{ pair }-{ timeframe.name }-{ from_date.replace('/', '.') }"
+    data.save_df(df, df_name, 'PARQUET')
+
+    return df
 
 
 def get_account_balance() -> dict:
     path = "/0/private/Balance"
 
-    data = {}
-    nonce = get_nonce()
-    data["nonce"] = nonce
-
-    headers = {}
-    headers["Content-Type"] = "Application/json"
-    headers["API-Key"] = API_KEY
-    headers["API-Sign"] = get_signature(PRIVATE_KEY, json.dumps(data), nonce, path)
-
-    ok, response_data = make_request(
+    response = make_request(
         path = path,
-        data = json.dumps(data).encode(),
-        headers = headers,
-        verb = 'post'
+        verb = 'POST',
+        use_nonce=True
     )
-
-    if ok and response_data['error'] == []:
-        return response_data['result']
-    else:
-        raise Exception("Kraken api error: failed to get balance")
+    
+    return response['result']
 
