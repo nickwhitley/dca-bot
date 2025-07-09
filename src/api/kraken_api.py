@@ -81,6 +81,7 @@ def make_request(
             raise ApiError(f'Api returned error: { error }')
         else:
             return response.json()
+        
     raise ApiError(f'Max Retries exeeded to {url}')
 
 
