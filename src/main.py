@@ -8,10 +8,10 @@ from loguru import logger
 
 @logger.catch
 def main():
-    df = get_OHLC(pair = "ADAUSD", from_date = "06-15-2025")
+    df = get_OHLC(pair = "ADAUSD", from_date = "01-01-2020")
     # df = data.get_df("ADAUSD", Timeframe.H1, file_type='PARQUET')
     print(df)
-    print(get_account_balance())
+    # print(get_account_balance())
 
 
 if __name__ == "__main__":
