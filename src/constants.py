@@ -10,3 +10,6 @@ class Timeframe(Enum):
     D = 1440
     W = 10080
     D15 = 21600
+
+class Asset(Enum):
+    ADA_USD = "ADA/USD"

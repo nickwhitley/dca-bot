@@ -10,13 +10,10 @@ from data import data
 from time import strftime, localtime
 from constants import Timeframe
 from typing import Any, Literal
+from constants import Asset
+from api.api_error import ApiError
 
 BASE_URL = 'https://api.kraken.com'
-
-class ApiError(Exception):
-    """
-    Handles any Api Related Errors
-    """
 
 def make_request(
         path: str, 
@@ -25,13 +22,10 @@ def make_request(
         headers: dict[str, str] | None = None, 
         verb: Literal['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] = 'GET',
         use_nonce: bool = False,
-        retry_on: list[int] | None = None,
+        retry_on: list[int] = [429, 502, 503, 504],
         retry_delay: float = 1.0,
         retry_max: int = 3
 ) -> Any:
-    
-    if not retry_on:
-        retry_on = [429, 502, 503, 504]
 
     url = f"{BASE_URL}/{path}"
     retries = 0
@@ -72,10 +66,11 @@ def make_request(
         if response.status_code in retry_on:
             retries += 1
             time.sleep(retry_delay)
+            continue
         elif response.status_code not in range(200, 299):
             raise ApiError(
                 f"Call to {url} yeilded a {response.status_code}"
-                f'response with "{response.content}'
+                f'response with: {response.content}'
             )
         elif (error := response.json().get('error')) != []:
             raise ApiError(f'Api returned error: { error }')
@@ -88,10 +83,12 @@ def make_request(
 def get_OHLC(
         pair: str="BTCUSD", 
         timeframe: Timeframe=Timeframe.H1, 
-        from_date: str=""
+        from_date: str="",
+        to_date: str=""
 ) -> pd.DataFrame|None:
     
     path = "/0/public/OHLC"
+    pair = pair.replace("/", "")
     since = time.mktime(datetime.datetime.strptime(from_date, "%m-%d-%Y").timetuple())
     params = {
         "pair": pair,

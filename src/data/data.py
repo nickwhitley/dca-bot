@@ -6,6 +6,7 @@ from typing import Literal
 def get_df(pair: str, timeframe: Timeframe, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PKL') -> pd.DataFrame:
     ext = file_type.lower()
     source_dir = path_append + f"./src/data/{ ext }/"
+    print(pair)
 
     for file in os.scandir(source_dir):
         if pair in file.path and timeframe.name in file.path:
