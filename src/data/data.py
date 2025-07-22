@@ -1,15 +1,18 @@
 import pandas as pd
 import os
-from constants import Timeframe
+from constants import Timeframe, Asset
+from api import coindesk_api
 from typing import Literal
+from constants import EARLIEST_BACKTEST_DATE
+from datetime import datetime
 
-def get_df(pair: str, timeframe: Timeframe, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PKL') -> pd.DataFrame:
+def get_df(pair: Asset, timeframe: Timeframe, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PKL') -> pd.DataFrame:
     ext = file_type.lower()
     source_dir = path_append + f"./src/data/{ ext }/"
-    print(pair)
+    print(pair.value)
 
     for file in os.scandir(source_dir):
-        if pair in file.path and timeframe.name in file.path:
+        if pair.name in file.path and timeframe.name in file.path:
             match file_type:
                 case 'PKL':
                     return pd.read_pickle(file.path)
@@ -17,12 +20,21 @@ def get_df(pair: str, timeframe: Timeframe, path_append: str ="", file_type: Lit
                     return pd.read_csv(file.path)
                 case 'PARQUET':
                     return pd.read_parquet(file.path)
+                
+    df = coindesk_api.get_OHLC(
+        from_date=EARLIEST_BACKTEST_DATE,
+        to_date=datetime.now(),
+        pair=pair,
+        timeframe=timeframe)
+    
+    if df is not None:
+        return df
             
-    raise FileNotFoundError("Could not find pkl file: {pair}-{timeframe.name}")
+    raise FileNotFoundError("Could not find file: {pair}-{timeframe.name}")
 
-def save_df(df: pd.DataFrame, file_name: str, file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PKL'):
+def save_df(df: pd.DataFrame, file_name: str, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PKL'):
     ext = file_type.lower()
-    dest_dir = f"./src/data/{ ext }/"
+    dest_dir = path_append + f"./src/data/{ ext }/"
 
     if not os.path.exists(dest_dir):
         print("making dir")
