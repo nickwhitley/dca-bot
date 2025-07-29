@@ -62,8 +62,8 @@ def make_request(
 def get_OHLC(
         from_date: datetime,
         to_date: datetime = datetime.now().replace(minute=0,second=0,microsecond=0),
-        pair: Asset = Asset.ADA_USD,
-        timeframe: Timeframe = Timeframe.H1,
+        asset: Asset = Asset.ADA_USD,
+        timeframe: Timeframe = Timeframe.M1,
 ) -> pd.DataFrame|None:
     path = "/index/cc/v1/historical/"
     match timeframe:
@@ -81,11 +81,11 @@ def get_OHLC(
     current_date = from_date
 
     while current_date < to_date:
-        chunk_end = min(current_date + timedelta(hours=DATA_LIMIT), to_date)
+        chunk_end = min(current_date + timedelta(minutes=DATA_LIMIT), to_date)
         print(f"Current chunk end {chunk_end}")
         chunk_end_timestamp = chunk_end.timestamp()
         total_data_ticks = (chunk_end - current_date).total_seconds() / 60 / timeframe.value
-        instrument = pair.value.replace('_', '-')
+        instrument = asset.value.replace('_', '-')
         params = {
             "groups": "OHLC",
             "to_ts": chunk_end_timestamp,
@@ -124,8 +124,11 @@ def get_OHLC(
     
     df['timestamp'] = df['timestamp'].apply(lambda x: strftime('%m-%d-%Y %H:%M', localtime(x)))
 
-    df_name = f"{ pair.value.replace('/', '_') }-{ timeframe.name }-{ from_date.strftime('%m-%d-%Y') }"
-    data.save_df(df, df_name, 'PARQUET')
+    df_name = f"{ asset.value.replace('/', '_') }-{ timeframe.name }-{ from_date.strftime('%m-%d-%Y') }"
+    data.save_df(
+        df=df,
+        file_name=df_name
+    )
 
 
     

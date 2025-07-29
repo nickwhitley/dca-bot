@@ -11,11 +11,11 @@ class BotConfig(BaseModel):
     averaging_order_step_multiplier: PositiveFloat
     take_profit: PositiveFloat
     reinvest_profit: PositiveFloat
-    pairs: list[Asset]
+    assets: list[Asset]
     timeframes: list[Timeframe]
 
     @model_validator(mode='after')
-    def check_pairs(self) -> Self:
-        if not self.pairs:
+    def check_assets(self) -> Self:
+        if not self.assets:
             raise ValueError(f"must provide at least one pair for backtesting")
         return self

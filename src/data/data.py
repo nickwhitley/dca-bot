@@ -6,13 +6,12 @@ from typing import Literal
 from constants import EARLIEST_BACKTEST_DATE
 from datetime import datetime
 
-def get_df(pair: Asset, timeframe: Timeframe, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PKL') -> pd.DataFrame:
+def get_df(asset: Asset, timeframe: Timeframe=Timeframe.M1, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PKL') -> pd.DataFrame:
     ext = file_type.lower()
     source_dir = path_append + f"./src/data/{ ext }/"
-    print(pair.value)
 
     for file in os.scandir(source_dir):
-        if pair.name in file.path and timeframe.name in file.path:
+        if asset.name in file.path and timeframe.name in file.path:
             match file_type:
                 case 'PKL':
                     return pd.read_pickle(file.path)
@@ -24,15 +23,15 @@ def get_df(pair: Asset, timeframe: Timeframe, path_append: str ="", file_type: L
     df = coindesk_api.get_OHLC(
         from_date=EARLIEST_BACKTEST_DATE,
         to_date=datetime.now(),
-        pair=pair,
+        asset=asset,
         timeframe=timeframe)
     
     if df is not None:
         return df
             
-    raise FileNotFoundError("Could not find file: {pair}-{timeframe.name}")
+    raise FileNotFoundError("Could not find file: {asset}-{timeframe.name}")
 
-def save_df(df: pd.DataFrame, file_name: str, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PKL'):
+def save_df(df: pd.DataFrame, file_name: str, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PARQUET'):
     ext = file_type.lower()
     dest_dir = path_append + f"./src/data/{ ext }/"
 

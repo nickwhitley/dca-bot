@@ -27,12 +27,12 @@ share/python-wheels/
 MANIFEST
 
 # Security
-security/
+security/*
 
 # Data files
-src/data/csv/
-src/data/pkl/
-src/data/parquet/
+src/data/csv/*
+src/data/pkl/*
+src/data/parquet/*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -148,6 +148,8 @@ celerybeat.pid
 .venv
 env/
 venv/
+venv311/
+venv312/
 ENV/
 env.bak/
 venv.bak/
