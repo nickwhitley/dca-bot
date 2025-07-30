@@ -122,13 +122,18 @@ def get_OHLC(
         'CLOSE': 'close'
         }, errors='raise').drop(['timeframe'], axis=1)
     
-    df['timestamp'] = df['timestamp'].apply(lambda x: strftime('%m-%d-%Y %H:%M', localtime(x)))
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
 
     df_name = f"{ asset.value.replace('/', '_') }-{ timeframe.name }-{ from_date.strftime('%m-%d-%Y') }"
-    data.save_df(
-        df=df,
-        file_name=df_name
-    )
+    try:
+        data.save_df(
+            df=df,
+            file_name=df_name
+        )
+    except:
+        print("failed to save")
+    finally:
+        return df
 
 
     

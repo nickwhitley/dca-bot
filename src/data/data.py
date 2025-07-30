@@ -6,7 +6,7 @@ from typing import Literal
 from constants import EARLIEST_BACKTEST_DATE
 from datetime import datetime
 
-def get_df(asset: Asset, timeframe: Timeframe=Timeframe.M1, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PKL') -> pd.DataFrame:
+def get_df(asset: Asset, timeframe: Timeframe=Timeframe.M1, path_append: str ="", file_type: Literal['PKL', 'CSV', 'PARQUET'] = 'PARQUET') -> pd.DataFrame:
     ext = file_type.lower()
     source_dir = path_append + f"./src/data/{ ext }/"
 
