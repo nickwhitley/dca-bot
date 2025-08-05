@@ -1,4 +1,4 @@
-from pydantic import BaseModel, PositiveFloat, PositiveInt, ValidationError, model_validator
+from pydantic import BaseModel, PositiveFloat, PositiveInt, NonNegativeFloat, ValidationError, model_validator
 from constants import Asset, Timeframe
 from typing_extensions import Self
 
@@ -9,8 +9,8 @@ class BotConfig(BaseModel):
     averaging_order_size_multiplier: PositiveFloat
     price_deviation: PositiveFloat
     averaging_order_step_multiplier: PositiveFloat
-    take_profit: PositiveFloat
-    reinvest_profit: PositiveFloat
+    take_profit: NonNegativeFloat
+    reinvest_profit: NonNegativeFloat
     assets: list[Asset]
     timeframes: list[Timeframe]
 

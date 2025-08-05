@@ -12,6 +12,9 @@ from backtesting import backtest
 
 @logger.catch
 def main():
+    # df = data.get_df(asset=Asset.ADA_USD)
+    # data.save_df(df, 'ADA_CSV',file_type='CSV')
+
     bot_config = BotConfig(
         base_order_size=20,
         averaging_order_size=40,
@@ -20,7 +23,7 @@ def main():
         price_deviation=1.5,
         averaging_order_step_multiplier=1.85,
         take_profit=1.5,
-        reinvest_profit=100,
+        reinvest_profit=0,
         assets=[Asset.ADA_USD],
         timeframes=[Timeframe.H1]
     )
@@ -31,21 +34,32 @@ def main():
         starting_balance=10_000
     )
 
-    backtest.run_dca_backtest(
+    result = backtest.run_dca_backtest(
         backtest_config=backtest_config, 
         bot_config=bot_config
         )
+    print(result.trades[0])
+    print(result.trades[1])
+    print(result.trades[2])
+    print(result.trades[3])
+    print(result.trades[4])
+    print(result.trades[5])
+    print(result.trades[6])
+    print(result.trades[7])
 
-    
+    print(result.trades[8])
 
-    # df = get_OHLC(pair = "ADAUSD", from_date = "01-01-2020")
-    # df = data.get_df("ADAUSD", Timeframe.H1, file_type='PARQUET')
-    # print(df)
-    # print(get_account_balance())
+    print(result.trades[9])
+    print(result.trades[75])
+    print(len(result.trades))
+    print(result.ending_balance)
+    print(result.max_drawdown)
+    print(result.average_drawdown)
+    print(result.gain_loss)
 
-    # from_date = datetime(2021, 1, 1, 0, 0, 0)
-    # coindesk_api.get_OHLC(from_date=from_date)
-    
+    # TODO: Reinvest profit doesn't work, should increase balance and the base order size should rise respectively
+    # TODO: Calculate max drawdown, avg trade lifetime, avg drawdown
+    # TODO: Need to recalculate balances and order sizes to have accurate results, I can't do percentage tp off the starting balance of $10,000 when the actual bot usage is only around $500
 
 
 if __name__ == "__main__":
