@@ -23,15 +23,15 @@ class Trade(BaseModel):
 Trade:
 Asset: {self.asset}
 Entry Datetime: {self.entry_datetime}
-Entry Price: {self.entry_price:.5f}
+Entry Price: {self.entry_price}
 Close Datetime: {self.close_datetime}
-Close Price: {self.close_price:.5f}
+Close Price: {self.close_price}
 Base Order Size: {self.base_order_size}
 Total Size: {self.total_order_size}
-Profit Loss: {self.profit_loss:.5f}
+Profit Loss: {self.profit_loss}
 Take Profit Levels: {[round(x, 5) for x in self.take_profit_levels]}
 Averaging Orders Prices: {self.avg_orders_prices}
 Averaging Orders Sizes: {self.avg_orders_sizes}
 Averaging Orders Filled: {self.avg_orders_filled}
-Average Entry Price: {self.avg_entry_price:.5f}
+Average Entry Price: {self.avg_entry_price}
 """

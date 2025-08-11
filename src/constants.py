@@ -16,3 +16,5 @@ class Timeframe(Enum):
 
 class Asset(Enum):
     ADA_USD = "ADA_USD"
+    BTC_USD = "BTC_USD"
+    SHIB_USD = "SHIB_USD"
