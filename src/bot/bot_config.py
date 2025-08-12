@@ -42,10 +42,40 @@ class BotConfig(BaseModel):
 
         self.base_order_size = round(self.base_order_size, 2)
         self.averaging_order_size = round(self.averaging_order_size, 2)
+
+    def scale_to_starting_balance(self, starting_balance: float):
+        B0 = float(self.base_order_size)
+        A0 = float(self.averaging_order_size)
+        m  = float(self.averaging_order_size_multiplier)
+        n  = int(self.max_averaging_orders)
+
+        if m == 1.0:
+            S = n
+        else:
+            S = (m**n - 1.0) / (m - 1.0)
+
+        total_unscaled = B0 + A0 * S
+        if total_unscaled <= 0:
+            raise ValueError("Invalid order sizes: total unscaled usage is non-positive.")
+
+        k = starting_balance / total_unscaled
+        self.base_order_size = round(B0 * k, 2)
+        self.averaging_order_size = round(A0 * k, 2)
     
     
 
-#     def __str__(self):
-#         return f"""
-
-# """
+    def __str__(self):
+        return (
+            f"BotConfig:\n"
+            f"  Base Order Size: {self.base_order_size:.2f}\n"
+            f"  Averaging Order Size: {self.averaging_order_size:.2f}\n"
+            f"  Max Averaging Orders: {self.max_averaging_orders}\n"
+            f"  Averaging Order Size Multiplier: {self.averaging_order_size_multiplier:.4f}\n"
+            f"  Price Deviation (%): {self.price_deviation:.2f}\n"
+            f"  Averaging Order Step Multiplier: {self.averaging_order_step_multiplier:.4f}\n"
+            f"  Take Profit (%): {self.take_profit:.2f}\n"
+            f"  Reinvest Profit (%): {self.reinvest_profit_pct:.2f}\n"
+            f"  Assets: {[asset.value for asset in self.assets]}\n"
+            f"  Timeframes: {[tf.name for tf in self.timeframes]}\n"
+            f"  Max Balance for Bot Usage: {self.max_balance_for_bot_usage:.2f}"
+        )

@@ -23,3 +23,11 @@ class BacktestConfig(BaseModel):
         if self.end_date > max_date:
             raise ValueError(f"{self.end_date} is invalid future date")
         return self
+    
+    def __str__(self):
+        return (
+            f"BacktestConfig:\n"
+            f"  Start Date: {self.start_date}\n"
+            f"  End Date: {self.end_date}\n"
+            f"  Starting Balance: {self.starting_balance:,.2f}\n"
+        )
